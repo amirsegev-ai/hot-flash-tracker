@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#D85A30">
+<title>מעקב גלי חום</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="גלי חום">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Heebo', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #FAF8F5;
+    color: #2C2C2A;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  .container { max-width: 600px; margin: 0 auto; padding: 0 16px 100px; }
+  header {
+    padding: 16px 16px 12px;
+    background: #FAF8F5;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 0.5px solid rgba(0,0,0,0.06);
+  }
+  .header-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  h1 { margin: 0; font-size: 20px; font-weight: 600; color: #2C2C2A; }
+  .sync-status {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 100px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+  }
+  .sync-ok { background: #E1F5EE; color: #0F6E56; }
+  .sync-off { background: #F1EFE8; color: #5F5E5A; }
+  .sync-err { background: #FCEBEB; color: #A32D2D; }
+  .sync-pending { background: #FAEEDA; color: #854F0B; }
+  .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  nav {
+    display: flex;
+    gap: 4px;
+    background: #F1EFE8;
+    padding: 4px;
+    border-radius: 10px;
+    margin: 12px 0;
+  }
+  nav button {
+    flex: 1;
+    padding: 8px 4px;
+    border: none;
+    background: transparent;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    color: #5F5E5A;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  nav button.active { background: white; color: #2C2C2A; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+
+  .card {
+    background: white;
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 12px;
+    border: 0.5px solid rgba(0,0,0,0.06);
+  }
+
+  .main-btn {
+    width: 100%;
+    padding: 28px 16px;
+    background: linear-gradient(135deg, #E8704A, #D85A30);
+    color: white;
+    border: none;
+    border-radius: 16px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    font-family: inherit;
+    box-shadow: 0 4px 16px rgba(216, 90, 48, 0.25);
+    transition: transform 0.1s;
+  }
+  .main-btn:active { transform: scale(0.98); }
+  .main-btn .icon { font-size: 38px; line-height: 1; }
+
+  .form-group { margin-bottom: 20px; }
+  .form-group label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 10px;
+    color: #2C2C2A;
+  }
+  .form-group .value {
+    color: #D85A30;
+    font-weight: 600;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 100px;
+    background: #F1EFE8;
+    outline: none;
+    margin: 6px 0;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #D85A30;
+    cursor: pointer;
+    border: 3px solid white;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #D85A30;
+    cursor: pointer;
+    border: 3px solid white;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
+  .range-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #888780;
+    margin-top: 4px;
+  }
+
+  input[type="text"], input[type="datetime-local"], textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #D3D1C7;
+    border-radius: 10px;
+    font-size: 15px;
+    font-family: inherit;
+    background: white;
+    color: #2C2C2A;
+  }
+  textarea { resize: vertical; min-height: 60px; }
+
+  .triggers-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .trigger-chip {
+    padding: 7px 14px;
+    border-radius: 100px;
+    background: #F1EFE8;
+    border: 1px solid transparent;
+    font-size: 13px;
+    cursor: pointer;
+    color: #5F5E5A;
+    font-weight: 500;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .trigger-chip.active {
+    background: #FAECE7;
+    color: #993C1D;
+    border-color: #F0997B;
+  }
+
+  .btn {
+    padding: 12px 16px;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: transform 0.1s;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: #1D9E75; color: white; flex: 2; }
+  .btn-secondary { background: #F1EFE8; color: #2C2C2A; flex: 1; }
+  .btn-danger { background: #FCEBEB; color: #A32D2D; }
+  .btn-ghost {
+    background: transparent;
+    color: #5F5E5A;
+    border: 1px dashed #D3D1C7;
+    width: 100%;
+    margin-top: 10px;
+    padding: 12px;
+  }
+  .btn-full { width: 100%; }
+  .btn-row { display: flex; gap: 8px; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .stat-card {
+    background: white;
+    padding: 14px 10px;
+    border-radius: 12px;
+    text-align: center;
+    border: 0.5px solid rgba(0,0,0,0.06);
+  }
+  .stat-card .label { font-size: 11px; color: #5F5E5A; margin-bottom: 2px; }
+  .stat-card .value { font-size: 22px; font-weight: 700; color: #2C2C2A; }
+
+  .log-item {
+    background: white;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 8px;
+    border: 0.5px solid rgba(0,0,0,0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .log-item .time { font-size: 13px; color: #5F5E5A; margin-bottom: 6px; }
+  .log-item .metrics { display: flex; gap: 6px; margin-bottom: 4px; flex-wrap: wrap; }
+  .log-item .badge {
+    padding: 3px 9px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .badge-intensity { background: #FAECE7; color: #993C1D; }
+  .badge-duration { background: #E6F1FB; color: #185FA5; }
+  .badge-trigger { background: #F1EFE8; color: #5F5E5A; }
+  .log-item .notes { font-size: 13px; color: #5F5E5A; margin-top: 6px; }
+  .log-item .delete-btn {
+    background: transparent;
+    border: none;
+    color: #B4B2A9;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 4px;
+    font-family: inherit;
+  }
+
+  .range-nav {
+    display: flex;
+    gap: 4px;
+    background: #F1EFE8;
+    padding: 4px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+  }
+  .range-nav button {
+    flex: 1;
+    padding: 7px 4px;
+    border: none;
+    background: transparent;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    color: #5F5E5A;
+    font-family: inherit;
+  }
+  .range-nav button.active { background: white; color: #2C2C2A; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+
+  .chart-container {
+    position: relative;
+    width: 100%;
+    height: 260px;
+  }
+  .chart-legend {
+    display: flex;
+    gap: 14px;
+    font-size: 11px;
+    color: #5F5E5A;
+    margin-bottom: 8px;
+    justify-content: center;
+  }
+  .chart-legend span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+  }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #2C2C2A;
+    margin: 0 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .trigger-bar { margin-bottom: 10px; }
+  .trigger-bar-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 13px; }
+  .trigger-bar-bg { background: #F1EFE8; height: 8px; border-radius: 100px; overflow: hidden; }
+  .trigger-bar-fill { background: #D85A30; height: 100%; border-radius: 100px; transition: width 0.3s; }
+
+  .setting-row {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 0.5px solid rgba(0,0,0,0.06);
+    gap: 10px;
+  }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-row .trigger-name { flex: 1; font-size: 15px; }
+  .setting-row .remove-btn {
+    background: transparent;
+    border: none;
+    color: #A32D2D;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 4px 10px;
+    font-family: inherit;
+  }
+
+  .retro-box {
+    background: #FAEEDA;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 20px;
+  }
+  .retro-box label { font-size: 13px; color: #854F0B; font-weight: 500; margin-bottom: 6px; display: block; }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #888780;
+  }
+  .empty-state .emoji { font-size: 48px; margin-bottom: 10px; opacity: 0.5; }
+
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2C2C2A;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 100px;
+    font-size: 14px;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  .connect-banner {
+    background: linear-gradient(135deg, #E6F1FB, #B5D4F4);
+    padding: 16px;
+    border-radius: 14px;
+    margin-bottom: 12px;
+  }
+  .connect-banner h3 { margin: 0 0 6px; font-size: 15px; color: #0C447C; }
+  .connect-banner p { margin: 0 0 12px; font-size: 13px; color: #185FA5; }
+  .connect-btn {
+    background: #185FA5;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .hidden { display: none !important; }
+
+  .detail-text { font-size: 13px; color: #5F5E5A; line-height: 1.5; }
+
+  /* ברירת מחדל למשפחה */
+  input, button, textarea { font-family: inherit; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="header-row">
+      <h1>🔥 מעקב גלי חום</h1>
+      <div id="syncStatus" class="sync-status sync-off">
+        <span class="sync-dot"></span>
+        <span id="syncStatusText">לא מסונכרן</span>
+      </div>
+    </div>
+    <nav>
+      <button class="tab-btn active" data-tab="log">תיעוד</button>
+      <button class="tab-btn" data-tab="history">היסטוריה</button>
+      <button class="tab-btn" data-tab="stats">ניתוח</button>
+      <button class="tab-btn" data-tab="settings">הגדרות</button>
+    </nav>
+  </header>
+
+  <!-- TAB: LOG -->
+  <div id="tab-log" class="tab-content">
+    <div class="card">
+      <button id="mainBtn" class="main-btn">
+        <span class="icon">🌡️</span>
+        <span>תיעוד גל חום עכשיו</span>
+      </button>
+
+      <div id="logForm" class="hidden" style="margin-top: 20px;">
+
+        <div id="retroBox" class="retro-box hidden">
+          <label>מתי התרחש הגל? (עד 24 שעות אחורה)</label>
+          <input type="datetime-local" id="retroTime">
+        </div>
+
+        <div class="form-group">
+          <label>
+            <span>עוצמה</span>
+            <span class="value" id="intensityLabel">2 - בינוני</span>
+          </label>
+          <input type="range" id="intensity" min="1" max="3" value="2" step="1">
+          <div class="range-labels">
+            <span>קל</span>
+            <span>בינוני</span>
+            <span>חזק</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>
+            <span>משך</span>
+            <span class="value" id="durationLabel">2 - בינוני</span>
+          </label>
+          <input type="range" id="duration" min="1" max="3" value="2" step="1">
+          <div class="range-labels">
+            <span>קצר</span>
+            <span>בינוני</span>
+            <span>ארוך</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label><span>טריגרים אפשריים</span></label>
+          <div id="triggersGrid" class="triggers-grid"></div>
+        </div>
+
+        <div class="form-group">
+          <label><span>הערות</span></label>
+          <textarea id="notes" placeholder="מלל חופשי... (אופציונלי)"></textarea>
+        </div>
+
+        <div class="btn-row">
+          <button id="cancelBtn" class="btn btn-secondary">ביטול</button>
+          <button id="saveBtn" class="btn btn-primary">💾 שמירה</button>
+        </div>
+      </div>
+
+      <button id="retroToggle" class="btn btn-ghost">+ הוספת גל רטרואקטיבית</button>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="label">היום</div>
+        <div class="value" id="statToday">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">השבוע</div>
+        <div class="value" id="statWeek">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">סה"כ</div>
+        <div class="value" id="statTotal">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: HISTORY -->
+  <div id="tab-history" class="tab-content hidden">
+    <div id="historyList"></div>
+  </div>
+
+  <!-- TAB: STATS -->
+  <div id="tab-stats" class="tab-content hidden">
+    <div class="range-nav">
+      <button class="range-btn active" data-range="day">יומי</button>
+      <button class="range-btn" data-range="week">שבועי</button>
+      <button class="range-btn" data-range="month">חודשי</button>
+      <button class="range-btn" data-range="quarter">רבעוני</button>
+    </div>
+
+    <div class="card">
+      <h3 class="section-title">📈 עוצמה ומשך לאורך זמן</h3>
+      <div class="chart-legend">
+        <span><span class="legend-dot" style="background: #D85A30;"></span>עוצמה</span>
+        <span><span class="legend-dot" style="background: #185FA5;"></span>משך</span>
+      </div>
+      <div class="chart-container">
+        <canvas id="mainChart" role="img" aria-label="גרף עוצמה ומשך של גלי חום לאורך זמן"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="section-title">🕐 התפלגות לפי שעה ביום</h3>
+      <div class="chart-container" style="height: 200px;">
+        <canvas id="hourChart" role="img" aria-label="כמות גלי חום לפי שעה ביום"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="section-title">🎯 טריגרים נפוצים</h3>
+      <div id="triggersStats"></div>
+    </div>
+  </div>
+
+  <!-- TAB: SETTINGS -->
+  <div id="tab-settings" class="tab-content hidden">
+
+    <div id="connectBanner" class="connect-banner">
+      <h3>☁️ סנכרון עם Google Sheets</h3>
+      <p>חברי את חשבון Google שלך לסנכרון אוטומטי בענן</p>
+      <button id="connectBtn" class="connect-btn">התחברות לגוגל</button>
+    </div>
+
+    <div id="connectedBox" class="card hidden">
+      <h3 class="section-title">☁️ חיבור לענן</h3>
+      <p class="detail-text" id="connectedAs">מחובר כ: --</p>
+      <p class="detail-text" id="sheetLink" style="margin-top: 8px;"></p>
+      <div class="btn-row" style="margin-top: 12px;">
+        <button id="syncNowBtn" class="btn btn-secondary btn-full">🔄 סנכרן עכשיו</button>
+      </div>
+      <div class="btn-row" style="margin-top: 8px;">
+        <button id="disconnectBtn" class="btn btn-danger btn-full">ניתוק</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="section-title">⚙️ הגדרת Client ID</h3>
+      <p class="detail-text" style="margin-bottom: 10px;">הכניסי את ה-Client ID שיצרת ב-Google Cloud Console:</p>
+      <input type="text" id="clientIdInput" placeholder="xxxxx.apps.googleusercontent.com">
+      <div class="btn-row" style="margin-top: 8px;">
+        <button id="saveClientIdBtn" class="btn btn-primary btn-full">שמירה</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="section-title">🎯 ניהול טריגרים</h3>
+      <div id="settingsTriggers"></div>
+      <div class="btn-row" style="margin-top: 12px;">
+        <input type="text" id="newTrigger" placeholder="טריגר חדש..." style="flex: 1;">
+        <button id="addTriggerBtn" class="btn btn-primary">הוספה</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="section-title">📤 ייצוא נתונים</h3>
+      <p class="detail-text" style="margin-bottom: 12px;">הורידי את כל הנתונים לקובץ Excel</p>
+      <button id="exportBtn" class="btn btn-primary btn-full">⬇️ ייצוא ל-Excel</button>
+    </div>
+
+    <div class="card">
+      <h3 class="section-title">🗑️ איפוס</h3>
+      <p class="detail-text" style="margin-bottom: 12px;">מחיקת כל הנתונים מהמכשיר (לא ימחק מהגיליון בענן)</p>
+      <button id="clearBtn" class="btn btn-danger btn-full">מחיקת כל הנתונים</button>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<script>
+// =====================================================
+// State Management
+// =====================================================
+const STORAGE_KEYS = {
+  WAVES: 'hotFlash_waves',
+  TRIGGERS: 'hotFlash_triggers',
+  CLIENT_ID: 'hotFlash_clientId',
+  SHEET_ID: 'hotFlash_sheetId',
+  USER_EMAIL: 'hotFlash_userEmail',
+  LAST_SYNC: 'hotFlash_lastSync',
+  PENDING_SYNC: 'hotFlash_pendingSync'
+};
+
+const DEFAULT_TRIGGERS = [
+  'אלכוהול', 'אוכל', 'קפה', 'פעילות מינית',
+  'מתח', 'פעילות פיזית', 'כעס'
+];
+
+const INTENSITY_LABELS = { 1: '1 - קל', 2: '2 - בינוני', 3: '3 - חזק' };
+const DURATION_LABELS = { 1: '1 - קצר', 2: '2 - בינוני', 3: '3 - ארוך' };
+
+let state = {
+  waves: loadFromStorage(STORAGE_KEYS.WAVES, []),
+  triggers: loadFromStorage(STORAGE_KEYS.TRIGGERS, DEFAULT_TRIGGERS),
+  clientId: loadFromStorage(STORAGE_KEYS.CLIENT_ID, ''),
+  sheetId: loadFromStorage(STORAGE_KEYS.SHEET_ID, ''),
+  userEmail: loadFromStorage(STORAGE_KEYS.USER_EMAIL, ''),
+  accessToken: null,
+  selectedTriggers: new Set(),
+  currentRange: 'week',
+  isRetro: false,
+  tokenClient: null,
+  pendingSync: loadFromStorage(STORAGE_KEYS.PENDING_SYNC, [])
+};
+
+function loadFromStorage(key, defaultValue) {
+  try {
+    const v = localStorage.getItem(key);
+    return v === null ? defaultValue : JSON.parse(v);
+  } catch { return defaultValue; }
+}
+
+function saveToStorage(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// =====================================================
+// Google OAuth + Sheets API
+// =====================================================
+const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets';
+
+function initGoogleClient() {
+  if (!state.clientId || typeof google === 'undefined') return;
+  try {
+    state.tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: state.clientId,
+      scope: SCOPES,
+      callback: handleTokenResponse,
+      error_callback: (err) => {
+        console.error('Token error:', err);
+        updateSyncStatus('err', 'שגיאת התחברות');
+        toast('שגיאה בהתחברות. ודאי שה-Client ID נכון ושכתובת האתר הוגדרה ב-Authorized Origins');
+      }
+    });
+  } catch (e) {
+    console.error('Google init failed:', e);
+  }
+}
+
+function handleTokenResponse(response) {
+  if (response.error) {
+    console.error(response);
+    updateSyncStatus('err', 'שגיאה');
+    return;
+  }
+  state.accessToken = response.access_token;
+
+  // Fetch user email
+  fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: { Authorization: `Bearer ${state.accessToken}` }
+  })
+    .then(r => r.json())
+    .then(info => {
+      state.userEmail = info.email;
+      saveToStorage(STORAGE_KEYS.USER_EMAIL, state.userEmail);
+      updateSettingsUI();
+      ensureSpreadsheet().then(() => {
+        syncAllWaves();
+      });
+    })
+    .catch(e => console.error(e));
+}
+
+async function connectGoogle() {
+  if (!state.clientId) {
+    toast('יש להזין Client ID קודם');
+    return;
+  }
+  if (!state.tokenClient) initGoogleClient();
+  if (!state.tokenClient) {
+    toast('Google Identity Services לא נטען');
+    return;
+  }
+  state.tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+function disconnectGoogle() {
+  if (state.accessToken && typeof google !== 'undefined') {
+    google.accounts.oauth2.revoke(state.accessToken, () => {});
+  }
+  state.accessToken = null;
+  state.userEmail = '';
+  state.sheetId = '';
+  localStorage.removeItem(STORAGE_KEYS.USER_EMAIL);
+  localStorage.removeItem(STORAGE_KEYS.SHEET_ID);
+  updateSettingsUI();
+  updateSyncStatus('off', 'לא מסונכרן');
+  toast('התנתקת');
+}
+
+async function ensureSpreadsheet() {
+  if (!state.accessToken) return null;
+
+  if (state.sheetId) {
+    // verify it still exists
+    try {
+      const r = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${state.sheetId}?fields=spreadsheetId`, {
+        headers: { Authorization: `Bearer ${state.accessToken}` }
+      });
+      if (r.ok) return state.sheetId;
+    } catch {}
+    state.sheetId = '';
+  }
+
+  // Create new spreadsheet
+  try {
+    updateSyncStatus('pending', 'יוצר גיליון...');
+    const resp = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${state.accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        properties: { title: 'Hot Flash Tracker Data', locale: 'he_IL' },
+        sheets: [{
+          properties: {
+            title: 'גלי חום',
+            rightToLeft: true,
+            gridProperties: { rowCount: 1000, columnCount: 8 }
+          }
+        }]
+      })
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error?.message || 'Failed to create sheet');
+    state.sheetId = data.spreadsheetId;
+    saveToStorage(STORAGE_KEYS.SHEET_ID, state.sheetId);
+
+    // Write headers
+    await writeSheetData([[
+      'תאריך', 'שעה', 'עוצמה', 'משך', 'טריגרים', 'הערות', 'רטרואקטיבי', 'ID'
+    ]], 'A1');
+
+    updateSettingsUI();
+    return state.sheetId;
+  } catch (e) {
+    console.error('Create sheet error:', e);
+    updateSyncStatus('err', 'שגיאה ביצירת גיליון');
+    return null;
+  }
+}
+
+async function writeSheetData(values, range) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${state.sheetId}/values/${encodeURIComponent('גלי חום!' + range)}?valueInputOption=USER_ENTERED`;
+  const resp = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${state.accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ values })
+  });
+  if (!resp.ok) {
+    const err = await resp.json();
+    throw new Error(err.error?.message || 'Write failed');
+  }
+  return resp.json();
+}
+
+async function appendSheetData(values) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${state.sheetId}/values/${encodeURIComponent('גלי חום!A:H')}:append?valueInputOption=USER_ENTERED`;
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${state.accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ values })
+  });
+  if (!resp.ok) {
+    const err = await resp.json();
+    throw new Error(err.error?.message || 'Append failed');
+  }
+  return resp.json();
+}
+
+function waveToRow(w) {
+  const dt = new Date(w.timestamp);
+  const date = dt.toLocaleDateString('he-IL');
+  const time = dt.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+  return [
+    date,
+    time,
+    w.intensity,
+    w.duration,
+    (w.triggers || []).join(', '),
+    w.notes || '',
+    w.isRetro ? 'כן' : '',
+    w.id
+  ];
+}
+
+async function syncWave(wave) {
+  if (!state.accessToken || !state.sheetId) {
+    queuePendingSync(wave);
+    return;
+  }
+  try {
+    updateSyncStatus('pending', 'מסנכרן...');
+    await appendSheetData([waveToRow(wave)]);
+    saveToStorage(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
+    updateSyncStatus('ok', 'מסונכרן');
+  } catch (e) {
+    console.error('Sync error:', e);
+    queuePendingSync(wave);
+    if (e.message.includes('401') || e.message.includes('UNAUTHENTICATED')) {
+      updateSyncStatus('err', 'נדרשת התחברות מחדש');
+    } else {
+      updateSyncStatus('err', 'שגיאת סנכרון');
+    }
+  }
+}
+
+function queuePendingSync(wave) {
+  if (!state.pendingSync.some(w => w.id === wave.id)) {
+    state.pendingSync.push(wave);
+    saveToStorage(STORAGE_KEYS.PENDING_SYNC, state.pendingSync);
+  }
+  if (!state.accessToken) updateSyncStatus('off', 'לא מסונכרן');
+}
+
+async function syncAllWaves() {
+  if (!state.accessToken) return;
+  const sheetId = await ensureSpreadsheet();
+  if (!sheetId) return;
+
+  if (state.pendingSync.length === 0) {
+    updateSyncStatus('ok', 'מסונכרן');
+    return;
+  }
+
+  try {
+    updateSyncStatus('pending', `מסנכרן ${state.pendingSync.length}...`);
+    const rows = state.pendingSync.map(waveToRow);
+    await appendSheetData(rows);
+    state.pendingSync = [];
+    saveToStorage(STORAGE_KEYS.PENDING_SYNC, state.pendingSync);
+    saveToStorage(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
+    updateSyncStatus('ok', 'מסונכרן');
+    toast(`סונכרנו ${rows.length} רשומות`);
+  } catch (e) {
+    console.error(e);
+    updateSyncStatus('err', 'שגיאת סנכרון');
+  }
+}
+
+function updateSyncStatus(type, text) {
+  const el = document.getElementById('syncStatus');
+  const txt = document.getElementById('syncStatusText');
+  el.className = 'sync-status';
+  const classMap = { ok: 'sync-ok', off: 'sync-off', err: 'sync-err', pending: 'sync-pending' };
+  el.classList.add(classMap[type] || 'sync-off');
+  txt.textContent = text;
+}
+
+// =====================================================
+// Form handling
+// =====================================================
+function renderTriggers() {
+  const container = document.getElementById('triggersGrid');
+  container.innerHTML = '';
+  state.triggers.forEach(t => {
+    const chip = document.createElement('button');
+    chip.className = 'trigger-chip';
+    chip.textContent = t;
+    chip.type = 'button';
+    if (state.selectedTriggers.has(t)) chip.classList.add('active');
+    chip.onclick = () => {
+      if (state.selectedTriggers.has(t)) {
+        state.selectedTriggers.delete(t);
+        chip.classList.remove('active');
+      } else {
+        state.selectedTriggers.add(t);
+        chip.classList.add('active');
+      }
+    };
+    container.appendChild(chip);
+  });
+}
+
+function openForm(isRetro = false) {
+  state.isRetro = isRetro;
+  document.getElementById('mainBtn').classList.add('hidden');
+  document.getElementById('retroToggle').classList.add('hidden');
+  document.getElementById('logForm').classList.remove('hidden');
+  document.getElementById('retroBox').classList.toggle('hidden', !isRetro);
+
+  if (isRetro) {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    document.getElementById('retroTime').value = now.toISOString().slice(0, 16);
+  }
+
+  document.getElementById('intensity').value = 2;
+  document.getElementById('duration').value = 2;
+  document.getElementById('intensityLabel').textContent = INTENSITY_LABELS[2];
+  document.getElementById('durationLabel').textContent = DURATION_LABELS[2];
+  document.getElementById('notes').value = '';
+  state.selectedTriggers.clear();
+  renderTriggers();
+}
+
+function closeForm() {
+  document.getElementById('mainBtn').classList.remove('hidden');
+  document.getElementById('retroToggle').classList.remove('hidden');
+  document.getElementById('logForm').classList.add('hidden');
+  state.isRetro = false;
+}
+
+function saveWave() {
+  let timestamp;
+  if (state.isRetro) {
+    const retroVal = document.getElementById('retroTime').value;
+    if (!retroVal) { toast('יש לבחור זמן'); return; }
+    timestamp = new Date(retroVal).toISOString();
+    const diff = Date.now() - new Date(retroVal).getTime();
+    if (diff < 0) { toast('לא ניתן לתעד עתיד'); return; }
+    if (diff > 24 * 60 * 60 * 1000) { toast('ניתן לתעד עד 24 שעות אחורה'); return; }
+  } else {
+    timestamp = new Date().toISOString();
+  }
+
+  const wave = {
+    id: 'w_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+    timestamp,
+    intensity: parseInt(document.getElementById('intensity').value),
+    duration: parseInt(document.getElementById('duration').value),
+    triggers: Array.from(state.selectedTriggers),
+    notes: document.getElementById('notes').value.trim(),
+    isRetro: state.isRetro
+  };
+
+  state.waves.push(wave);
+  saveToStorage(STORAGE_KEYS.WAVES, state.waves);
+
+  closeForm();
+  updateStats();
+  renderHistory();
+  toast('✓ נשמר');
+
+  syncWave(wave);
+}
+
+function deleteWave(id) {
+  if (!confirm('למחוק את הרשומה?')) return;
+  state.waves = state.waves.filter(w => w.id !== id);
+  state.pendingSync = state.pendingSync.filter(w => w.id !== id);
+  saveToStorage(STORAGE_KEYS.WAVES, state.waves);
+  saveToStorage(STORAGE_KEYS.PENDING_SYNC, state.pendingSync);
+  updateStats();
+  renderHistory();
+  toast('נמחק');
+  // Note: we don't remove from sheet - the sheet retains historical record
+}
+
+// =====================================================
+// History
+// =====================================================
+function renderHistory() {
+  const container = document.getElementById('historyList');
+  const waves = [...state.waves].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+  if (waves.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="emoji">📝</div><div>עדיין אין רשומות</div></div>';
+    return;
+  }
+
+  container.innerHTML = waves.map(w => {
+    const dt = new Date(w.timestamp);
+    const timeStr = dt.toLocaleString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const triggers = (w.triggers || []).map(t => `<span class="badge badge-trigger">${escapeHtml(t)}</span>`).join('');
+    return `
+      <div class="log-item">
+        <div style="flex: 1;">
+          <div class="time">${timeStr}${w.isRetro ? ' • רטרו' : ''}</div>
+          <div class="metrics">
+            <span class="badge badge-intensity">עוצמה ${w.intensity}</span>
+            <span class="badge badge-duration">משך ${w.duration}</span>
+            ${triggers}
+          </div>
+          ${w.notes ? `<div class="notes">${escapeHtml(w.notes)}</div>` : ''}
+        </div>
+        <button class="delete-btn" data-id="${w.id}" aria-label="מחיקה">×</button>
+      </div>
+    `;
+  }).join('');
+
+  container.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.onclick = () => deleteWave(btn.dataset.id);
+  });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// =====================================================
+// Stats
+// =====================================================
+function updateStats() {
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const weekAgo = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+
+  let today = 0, week = 0;
+  state.waves.forEach(w => {
+    const t = new Date(w.timestamp).getTime();
+    if (t >= startOfDay) today++;
+    if (t >= weekAgo) week++;
+  });
+
+  document.getElementById('statToday').textContent = today;
+  document.getElementById('statWeek').textContent = week;
+  document.getElementById('statTotal').textContent = state.waves.length;
+}
+
+// =====================================================
+// Charts
+// =====================================================
+let mainChartInstance = null;
+let hourChartInstance = null;
+
+function renderCharts() {
+  renderMainChart();
+  renderHourChart();
+  renderTriggersStats();
+}
+
+function getRangeBounds(range) {
+  const now = new Date();
+  const end = now.getTime();
+  let start, bucketMs, labelFn, bucketCount;
+  if (range === 'day') {
+    start = end - 24 * 60 * 60 * 1000;
+    bucketMs = 60 * 60 * 1000; // 1 hour
+    bucketCount = 24;
+    labelFn = (i) => {
+      const d = new Date(start + i * bucketMs);
+      return d.toLocaleTimeString('he-IL', { hour: '2-digit' });
+    };
+  } else if (range === 'week') {
+    start = end - 7 * 24 * 60 * 60 * 1000;
+    bucketMs = 24 * 60 * 60 * 1000;
+    bucketCount = 7;
+    labelFn = (i) => {
+      const d = new Date(start + i * bucketMs);
+      return d.toLocaleDateString('he-IL', { weekday: 'short', day: '2-digit' });
+    };
+  } else if (range === 'month') {
+    start = end - 30 * 24 * 60 * 60 * 1000;
+    bucketMs = 24 * 60 * 60 * 1000;
+    bucketCount = 30;
+    labelFn = (i) => {
+      const d = new Date(start + i * bucketMs);
+      return d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' });
+    };
+  } else { // quarter
+    start = end - 90 * 24 * 60 * 60 * 1000;
+    bucketMs = 7 * 24 * 60 * 60 * 1000;
+    bucketCount = 13;
+    labelFn = (i) => {
+      const d = new Date(start + i * bucketMs);
+      return d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' });
+    };
+  }
+  return { start, end, bucketMs, bucketCount, labelFn };
+}
+
+function renderMainChart() {
+  const { start, bucketMs, bucketCount, labelFn } = getRangeBounds(state.currentRange);
+
+  const intensityData = new Array(bucketCount).fill(null).map(() => ({ sum: 0, count: 0 }));
+  const durationData = new Array(bucketCount).fill(null).map(() => ({ sum: 0, count: 0 }));
+
+  state.waves.forEach(w => {
+    const t = new Date(w.timestamp).getTime();
+    const idx = Math.floor((t - start) / bucketMs);
+    if (idx >= 0 && idx < bucketCount) {
+      intensityData[idx].sum += w.intensity;
+      intensityData[idx].count++;
+      durationData[idx].sum += w.duration;
+      durationData[idx].count++;
+    }
+  });
+
+  const labels = Array.from({ length: bucketCount }, (_, i) => labelFn(i));
+  const intensityAvg = intensityData.map(b => b.count ? +(b.sum / b.count).toFixed(2) : null);
+  const durationAvg = durationData.map(b => b.count ? +(b.sum / b.count).toFixed(2) : null);
+  const counts = intensityData.map(b => b.count);
+
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  if (mainChartInstance) mainChartInstance.destroy();
+  mainChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'עוצמה',
+          data: intensityAvg,
+          borderColor: '#D85A30',
+          backgroundColor: 'rgba(216, 90, 48, 0.1)',
+          tension: 0.35,
+          spanGaps: true,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          borderWidth: 2.5
+        },
+        {
+          label: 'משך',
+          data: durationAvg,
+          borderColor: '#185FA5',
+          backgroundColor: 'rgba(24, 95, 165, 0.1)',
+          tension: 0.35,
+          spanGaps: true,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          borderWidth: 2.5,
+          borderDash: [6, 4]
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#2C2C2A',
+          titleFont: { size: 12 },
+          bodyFont: { size: 12 },
+          callbacks: {
+            afterBody: (items) => {
+              const idx = items[0].dataIndex;
+              return counts[idx] ? `מספר גלים: ${counts[idx]}` : '';
+            }
+          }
+        }
+      },
+      scales: {
+        y: { min: 0, max: 3, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.04)' } },
+        x: { ticks: { font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 8 }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+function renderHourChart() {
+  const hourCounts = new Array(24).fill(0);
+  state.waves.forEach(w => {
+    const h = new Date(w.timestamp).getHours();
+    hourCounts[h]++;
+  });
+  const labels = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+
+  const ctx = document.getElementById('hourChart').getContext('2d');
+  if (hourChartInstance) hourChartInstance.destroy();
+  hourChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'כמות',
+        data: hourCounts,
+        backgroundColor: '#E8704A',
+        borderRadius: 4,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.04)' } },
+        x: { ticks: { font: { size: 10 }, autoSkip: true, maxTicksLimit: 12 }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+function renderTriggersStats() {
+  const counts = {};
+  state.waves.forEach(w => (w.triggers || []).forEach(t => counts[t] = (counts[t] || 0) + 1));
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const container = document.getElementById('triggersStats');
+
+  if (sorted.length === 0) {
+    container.innerHTML = '<div class="detail-text" style="text-align: center; padding: 20px 0;">עדיין אין טריגרים מתועדים</div>';
+    return;
+  }
+  const max = sorted[0][1];
+  container.innerHTML = sorted.map(([name, count]) => `
+    <div class="trigger-bar">
+      <div class="trigger-bar-row">
+        <span>${escapeHtml(name)}</span>
+        <span style="color: #5F5E5A;">${count}</span>
+      </div>
+      <div class="trigger-bar-bg">
+        <div class="trigger-bar-fill" style="width: ${(count / max * 100)}%;"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// =====================================================
+// Settings
+// =====================================================
+function renderSettingsTriggers() {
+  const container = document.getElementById('settingsTriggers');
+  container.innerHTML = state.triggers.map(t => `
+    <div class="setting-row">
+      <span class="trigger-name">${escapeHtml(t)}</span>
+      <button class="remove-btn" data-trigger="${escapeHtml(t)}">×</button>
+    </div>
+  `).join('');
+  container.querySelectorAll('.remove-btn').forEach(btn => {
+    btn.onclick = () => {
+      const t = btn.dataset.trigger;
+      state.triggers = state.triggers.filter(x => x !== t);
+      saveToStorage(STORAGE_KEYS.TRIGGERS, state.triggers);
+      renderSettingsTriggers();
+      renderTriggers();
+    };
+  });
+}
+
+function addTrigger() {
+  const input = document.getElementById('newTrigger');
+  const val = input.value.trim();
+  if (!val) return;
+  if (state.triggers.includes(val)) { toast('כבר קיים'); return; }
+  state.triggers.push(val);
+  saveToStorage(STORAGE_KEYS.TRIGGERS, state.triggers);
+  input.value = '';
+  renderSettingsTriggers();
+  renderTriggers();
+}
+
+function updateSettingsUI() {
+  const banner = document.getElementById('connectBanner');
+  const box = document.getElementById('connectedBox');
+  if (state.userEmail) {
+    banner.classList.add('hidden');
+    box.classList.remove('hidden');
+    document.getElementById('connectedAs').textContent = 'מחובר כ: ' + state.userEmail;
+    if (state.sheetId) {
+      document.getElementById('sheetLink').innerHTML = `<a href="https://docs.google.com/spreadsheets/d/${state.sheetId}" target="_blank" rel="noopener" style="color: #185FA5;">📊 פתיחת הגיליון ב-Google Sheets</a>`;
+    }
+  } else {
+    banner.classList.remove('hidden');
+    box.classList.add('hidden');
+  }
+  document.getElementById('clientIdInput').value = state.clientId || '';
+}
+
+// =====================================================
+// Export to Excel
+// =====================================================
+function exportToExcel() {
+  if (state.waves.length === 0) { toast('אין נתונים לייצוא'); return; }
+  const rows = [...state.waves]
+    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+    .map(w => {
+      const dt = new Date(w.timestamp);
+      return {
+        'תאריך': dt.toLocaleDateString('he-IL'),
+        'שעה': dt.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+        'עוצמה': w.intensity,
+        'משך': w.duration,
+        'טריגרים': (w.triggers || []).join(', '),
+        'הערות': w.notes || '',
+        'רטרואקטיבי': w.isRetro ? 'כן' : ''
+      };
+    });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{ wch: 12 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 30 }, { wch: 30 }, { wch: 10 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'גלי חום');
+  const fname = `hot_flash_data_${new Date().toISOString().slice(0, 10)}.xlsx`;
+  XLSX.writeFile(wb, fname);
+  toast('הקובץ הורד');
+}
+
+// =====================================================
+// Tabs
+// =====================================================
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('hidden', c.id !== 'tab-' + tab));
+  if (tab === 'history') renderHistory();
+  if (tab === 'stats') renderCharts();
+  if (tab === 'settings') { updateSettingsUI(); renderSettingsTriggers(); }
+}
+
+// =====================================================
+// Init
+// =====================================================
+document.addEventListener('DOMContentLoaded', () => {
+  // Tabs
+  document.querySelectorAll('.tab-btn').forEach(b => b.onclick = () => switchTab(b.dataset.tab));
+
+  // Form
+  document.getElementById('mainBtn').onclick = () => openForm(false);
+  document.getElementById('retroToggle').onclick = () => openForm(true);
+  document.getElementById('cancelBtn').onclick = closeForm;
+  document.getElementById('saveBtn').onclick = saveWave;
+
+  // Sliders
+  document.getElementById('intensity').oninput = (e) => {
+    document.getElementById('intensityLabel').textContent = INTENSITY_LABELS[e.target.value];
+  };
+  document.getElementById('duration').oninput = (e) => {
+    document.getElementById('durationLabel').textContent = DURATION_LABELS[e.target.value];
+  };
+
+  // Range buttons
+  document.querySelectorAll('.range-btn').forEach(b => b.onclick = () => {
+    document.querySelectorAll('.range-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    state.currentRange = b.dataset.range;
+    renderCharts();
+  });
+
+  // Settings
+  document.getElementById('saveClientIdBtn').onclick = () => {
+    const val = document.getElementById('clientIdInput').value.trim();
+    if (!val) { toast('יש להזין Client ID'); return; }
+    state.clientId = val;
+    saveToStorage(STORAGE_KEYS.CLIENT_ID, val);
+    toast('Client ID נשמר');
+    initGoogleClient();
+  };
+  document.getElementById('connectBtn').onclick = connectGoogle;
+  document.getElementById('disconnectBtn').onclick = disconnectGoogle;
+  document.getElementById('syncNowBtn').onclick = syncAllWaves;
+  document.getElementById('addTriggerBtn').onclick = addTrigger;
+  document.getElementById('newTrigger').addEventListener('keydown', (e) => { if (e.key === 'Enter') addTrigger(); });
+  document.getElementById('exportBtn').onclick = exportToExcel;
+  document.getElementById('clearBtn').onclick = () => {
+    if (!confirm('למחוק את כל הנתונים מהמכשיר? הגיליון בענן יישמר.')) return;
+    state.waves = [];
+    state.pendingSync = [];
+    saveToStorage(STORAGE_KEYS.WAVES, []);
+    saveToStorage(STORAGE_KEYS.PENDING_SYNC, []);
+    updateStats();
+    renderHistory();
+    toast('כל הנתונים נמחקו');
+  };
+
+  // Init
+  renderTriggers();
+  updateStats();
+  updateSettingsUI();
+
+  // If pending syncs exist, show that
+  if (state.pendingSync.length > 0) {
+    updateSyncStatus('pending', `${state.pendingSync.length} ממתינים`);
+  }
+
+  // Wait for Google Identity Services to load
+  const checkGoogle = setInterval(() => {
+    if (typeof google !== 'undefined' && google.accounts) {
+      clearInterval(checkGoogle);
+      if (state.clientId) initGoogleClient();
+    }
+  }, 100);
+});
+
+// Service Worker for PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+
+</body>
+</html>
